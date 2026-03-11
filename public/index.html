@@ -75,7 +75,7 @@ function start() {
         if (playTime < audioContext.currentTime) {
 
             if (initialBuffer) {
-                playTime = audioContext.currentTime + 2.0 // 2 second delay
+                playTime = audioContext.currentTime + 5.0 // 2 second delay
                 initialBuffer = false
             } else {
                 playTime = audioContext.currentTime
