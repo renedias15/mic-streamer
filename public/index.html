@@ -16,9 +16,6 @@
 let socket
 let audioContext
 
-let queue = []
-let playTime = 0
-
 function start() {
 
     audioContext = new AudioContext()
@@ -32,8 +29,6 @@ function start() {
         console.log("WebSocket connected")
 
         socket.send("LISTENER")
-
-        playTime = audioContext.currentTime + 1.0 // 1 second buffer
 
     }
 
@@ -53,49 +48,33 @@ function start() {
             }
     
         }
-
-        queue.push(event.data)
-
-        playQueue()
-
+    
+        // Audio handling (your original code)
+    
+        const pcmData = new Int16Array(event.data)
+    
+        const floatData = new Float32Array(pcmData.length)
+    
+        for (let i = 0; i < pcmData.length; i++) {
+            floatData[i] = pcmData[i] / 32768
+        }
+    
+        const buffer = audioContext.createBuffer(
+            1,
+            floatData.length,
+            16000
+        )
+    
+        buffer.copyToChannel(floatData, 0)
+    
+        const source = audioContext.createBufferSource()
+    
+        source.buffer = buffer
+        source.connect(audioContext.destination)
+    
+        source.start()
+    
     }
-
-}
-
-function playQueue() {
-
-    if (queue.length === 0) return
-
-    const data = queue.shift()
-
-    const pcmData = new Int16Array(data)
-
-    const floatData = new Float32Array(pcmData.length)
-
-    for (let i = 0; i < pcmData.length; i++) {
-        floatData[i] = pcmData[i] / 32768
-    }
-
-    const buffer = audioContext.createBuffer(
-        1,
-        floatData.length,
-        16000
-    )
-
-    buffer.copyToChannel(floatData, 0)
-
-    const source = audioContext.createBufferSource()
-
-    source.buffer = buffer
-    source.connect(audioContext.destination)
-
-    if (playTime < audioContext.currentTime) {
-        playTime = audioContext.currentTime
-    }
-
-    source.start(playTime)
-
-    playTime += buffer.duration
 
 }
 
@@ -127,4 +106,3 @@ if (navigator.connection) {
 
 </body>
 </html>
-
