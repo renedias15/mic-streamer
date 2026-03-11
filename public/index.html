@@ -16,6 +16,9 @@
 let socket
 let audioContext
 
+let playTime = 0
+let initialBuffer = true
+
 function start() {
 
     audioContext = new AudioContext()
@@ -36,44 +39,54 @@ function start() {
 
         // Handle text messages first
         if (typeof event.data === "string") {
-    
+
             if (event.data.startsWith("NETWORK:")) {
-    
+
                 const network = event.data.split(":")[1]
-    
+
                 document.getElementById("network").innerText =
                     "Network: " + network
-    
+
                 return
             }
-    
         }
-    
-        // Audio handling (your original code)
-    
+
+        // Convert PCM -> Float
         const pcmData = new Int16Array(event.data)
-    
         const floatData = new Float32Array(pcmData.length)
-    
+
         for (let i = 0; i < pcmData.length; i++) {
             floatData[i] = pcmData[i] / 32768
         }
-    
+
         const buffer = audioContext.createBuffer(
             1,
             floatData.length,
-            16000
+            audioContext.sampleRate
         )
-    
+
         buffer.copyToChannel(floatData, 0)
-    
+
         const source = audioContext.createBufferSource()
-    
         source.buffer = buffer
         source.connect(audioContext.destination)
-    
-        source.start()
-    
+
+        // Jitter buffer logic
+        if (playTime < audioContext.currentTime) {
+
+            if (initialBuffer) {
+                playTime = audioContext.currentTime + 2.0 // 2 second delay
+                initialBuffer = false
+            } else {
+                playTime = audioContext.currentTime
+            }
+
+        }
+
+        source.start(playTime)
+
+        playTime += buffer.duration
+
     }
 
 }
