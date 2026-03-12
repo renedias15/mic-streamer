@@ -1,0 +1,42 @@
+<audio id="player" controls autoplay></audio>
+<button id="checkNetworkBtn">Check Network Type</button>
+
+<script>
+const socket = new WebSocket("wss://graphic-beatles-arch-gate.trycloudflare.com/listen")
+socket.binaryType = "arraybuffer"
+
+const audio = document.getElementById("player")
+const mediaSource = new MediaSource()
+
+audio.src = URL.createObjectURL(mediaSource)
+
+mediaSource.addEventListener("sourceopen", () => {
+  const buffer = mediaSource.addSourceBuffer('audio/aac')
+
+  socket.onmessage = (e) => {
+      // Only append audio packets (skip network type messages)
+      if (e.data instanceof ArrayBuffer) {
+          const text = new TextDecoder("utf-8").decode(e.data)
+          if (!text.startsWith("NETWORK_TYPE:")) {
+              if (!buffer.updating) buffer.appendBuffer(new Uint8Array(e.data))
+          }
+      }
+  }
+})
+
+// -------------------- CHECK NETWORK BUTTON --------------------
+document.getElementById("checkNetworkBtn").addEventListener("click", () => {
+    socket.send("CHECK_NETWORK") // send request to Android
+})
+
+// -------------------- HANDLE NETWORK TYPE MESSAGE --------------------
+socket.addEventListener("message", (event) => {
+    if (event.data instanceof ArrayBuffer) {
+        const text = new TextDecoder("utf-8").decode(event.data)
+        if (text.startsWith("NETWORK_TYPE:")) {
+            console.log("Network type from Android:", text)
+            alert("Network type: " + text) // shows once
+        }
+    }
+})
+</script>
